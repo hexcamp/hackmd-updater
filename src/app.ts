@@ -15,6 +15,8 @@ const app: FastifyPluginAsync<AppOptions> = async (
   opts
 ): Promise<void> => {
   // Place here your custom code!
+  const __dirname = import.meta.dirname;
+
 
   // Do not touch the following lines
 

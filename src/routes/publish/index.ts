@@ -15,7 +15,12 @@ const publish: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
 
     const ipfs = create({ url: 'http://localhost:5001/api/v0' });
     const dag = await ipfs.dag.get(parsedCid);
-    request.log.info("Dag:", dag);
+    const links = dag.value.Links;
+    for (const link of links) {
+      const hash = link.Hash;
+      const name = link.Name;
+      request.log.info(`Dag link: ${name} -> ${hash}`);
+    }
 
     return `publish: ${cid}\n`
   })
