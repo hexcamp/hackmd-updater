@@ -1,7 +1,7 @@
 import { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { create, CID } from 'kubo-rpc-client'
 import { simpleGit, SimpleGit } from 'simple-git';
-import { readFileSync, writeFileSync, rmdirSync } from 'fs';
+import { readFileSync, writeFileSync, rmSync } from 'fs';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import 'dotenv/config';
@@ -34,7 +34,7 @@ const publish: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     const repoName = process.env.REPO_NAME || '';
     const remoteUrl = `https://${process.env.GITHUB_PAT}@github.com/${repoOrg}/${repoName}.git`;
     try {
-      rmdirSync(repoName, { recursive: true });
+      rmSync(repoName, { recursive: true });
     } catch (e) {}
     const git: SimpleGit = simpleGit();
     await git.clone(remoteUrl);
