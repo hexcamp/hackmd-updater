@@ -1,23 +1,25 @@
-# Getting Started with [Fastify-CLI](https://www.npmjs.com/package/fastify-cli)
-This project was bootstrapped with Fastify-CLI.
+# hackmd-updater
 
-## Available Scripts
+Provide a simple REST API endpoint ... meant to be called from the GitHub Action for [hackmd-notes](https://github.com/hexcamp/hackmd-notes/actions) after the built website has been uploaded to the
+IPFS cluster.
 
-In the project directory, you can run:
+```
+curl -X POST http://<api endpoint>/publish/bafybeievdt6abm37tjhec6ycyaqmu66obozwbp6hbovfvwk4jfqzye7p5m
+```
 
-### `npm run dev`
+It will use `ipfs dag get <cid>` to discover the CIDs for each website that is uploaded in a first level subdirectory, with the naming convention `<hexagon id>-*`.  It will then update this [CSV file](https://github.com/hexcamp/hexcamp-coredns-sites/blob/main/jim.csv) with the updated CIDs and push a git commit to kick off the publishing pipeline.
 
-To start the app in dev mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Config
 
-### `npm start`
+.env:
 
-For production mode
+```
+GITHUB_PAT=<github personal access token>
+IPFS_API=http://localhost:5001/api/v0
+REPO_ORG=hexcamp
+REPO_NAME=hexcamp-coredns-sites
+```
 
-### `npm run test`
+## License
 
-Run the test cases.
-
-## Learn More
-
-To learn Fastify, check out the [Fastify documentation](https://fastify.dev/docs/latest/).
+MIT or Apache 2

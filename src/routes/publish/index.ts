@@ -1,9 +1,10 @@
 import { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { create, CID } from 'kubo-rpc-client'
 import { simpleGit, SimpleGit } from 'simple-git';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, rmdirSync } from 'fs';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
+import 'dotenv/config';
 
 interface IParams {
   cid: string
@@ -17,7 +18,7 @@ const publish: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     const { cid } = request.params;
     const parsedCid = CID.parse(cid);
 
-    const ipfs = create({ url: 'http://localhost:5001/api/v0' });
+    const ipfs = create({ url: process.env.IPFS_API });
     const dag = await ipfs.dag.get(parsedCid);
     const links = dag.value.Links;
     const hexMap = new Map();
@@ -29,11 +30,17 @@ const publish: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       request.log.info(`Dag link: ${hex}: ${name} -> ${hash}`);
     }
 
-    const remoteUrl = "https://github.com/hexcamp/hexcamp-coredns-sites.git";
-    const git: SimpleGit = simpleGit().clone(remoteUrl);
-    request.log.info(`Git: ${git}`);
+    const repoOrg = process.env.REPO_ORG || '';
+    const repoName = process.env.REPO_NAME || '';
+    const remoteUrl = `https://${process.env.GITHUB_PAT}@github.com/${repoOrg}/${repoName}.git`;
+    try {
+      rmdirSync(repoName, { recursive: true });
+    } catch (e) {}
+    const git: SimpleGit = simpleGit();
+    await git.clone(remoteUrl);
+    git.cwd(repoName);
 
-    const data = readFileSync('hexcamp-coredns-sites/jim.csv', 'utf-8');
+    const data = readFileSync(`${repoName}/jim.csv`, 'utf-8');
 
     const records = parse(data, {
       columns: true,
@@ -42,14 +49,18 @@ const publish: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     for (const record of records) {
       if (hexMap.has(record.hex_id)) {
         request.log.info(`Before: ${JSON.stringify(record)}`);
-        record.dnslink_cid = hexMap.get(record.hex_id)
+        record.dnslink_cid = hexMap.get(record.hex_id);
         request.log.info(`After: ${JSON.stringify(record)}`);
       }
     }
     const output = stringify(records, { header: true });
-    writeFileSync('hexcamp-coredns-sites/jim2.csv', output);
+    writeFileSync(`${repoName}/jim.csv`, output);
 
-    return `publish: ${cid}\n`
+    await git.add('jim.csv');
+    await git.commit('Updated from hackmd-updater');
+    const hash = await git.revparse(['HEAD']);
+    await git.push('origin', 'main');
+    return `Published CID: ${cid} to Git Hash: ${hash}\n`
   })
 }
 
